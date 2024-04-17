@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Get Latitude and Longitude</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/7.14.1-0/firebase.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAftggrcsvxKDzWbGb5ZwO6B6Zo52PHlxQ&signed_in=true&callback=initMap"
+        async defer></script>
+  
+  <style>
+    #map {
+      height: 400px;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    #startTracking {
+      padding: 10px 20px;
+      text-align: center;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #startTracking:hover {
+      background-color: #45a049;
+    }
+
+    #startTracking:active {
+      background-color: #3e8e41;
+    }
+
+    #stopTracking {
+      padding: 10px 20px;
+      text-align: center;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #stopTracking:hover {
+      background-color: #45a049;
+    }
+
+    #stopTracking:active {
+      background-color: #3e8e41;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>Latitude and Longitude</h1>
+  <div id="map"></div>
+  <button onclick="startTracking()" id="startTracking">Start Tracking</button>
+  <button onclick="stopTracking()" id="stopTracking">Stop Tracking</button>
+  <p id="demo"></p>
+  <p id="updateMessage"></p>
+
+  <script>
+    const x = document.getElementById("demo");
+    const updateMessage = document.getElementById("updateMessage");
+    let map;
+    let marker;
+    let trackingInterval;
+    const firebaseConfig = {
+      apiKey: "AIzaSyBoU3XEQikl1mumoPYj4shfOoYEYVPiEi8",
+      authDomain: "track-my-bag-85bb3.firebaseapp.com",
+      databaseURL: "https://track-my-bag-85bb3-default-rtdb.firebaseio.com",
+      projectId: "track-my-bag-85bb3",
+      storageBucket: "track-my-bag-85bb3.appspot.com",
+      messagingSenderId: "685309464073",
+      appId: "1:685309464073:web:a3b8fa544304343af632d8"
+    };
+  firebase.initializeApp(firebaseConfig);
+    const locationsRef = firebase.database().ref("locations");
+    let currentLocation = null;
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 0, lng: 0 },
+        zoom: 2,
+      });
+    }
+
+    function startTracking() {
+      trackingInterval = setInterval(getLocation, 5000); // Track every 5 seconds
+    }
+
+    function stopTracking() {
+      clearInterval(trackingInterval);
+      if (marker) {
+        marker.setMap(null); // Remove marker from map
+      }
+      currentLocation = null; // Reset currentLocation variable
+    }
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(updatePosition);
+      } else {
+        x.innerHTML = "Geolocation is not supported by this browser.";
+      }
+    }
+
+    function updatePosition(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      x.innerHTML = "Latitude: " + lat + "<br>Longitude: " + lng;
+
+      updateMessage.innerHTML = "Location updated.";
+
+      // Show the message for 1 second
+      setTimeout(() => {
+        updateMessage.innerHTML = "";
+      }, 1000);
+
+      const myLatLng = { lat, lng };
+      if (!marker) {
+        marker = new google.maps.Marker({
+          position: myLatLng,
+          map: map,
+          title: "Your Location",
+        });
+      } else {
+        marker.setPosition(myLatLng);
+      }
+
+      // Update location in Firebase
+      if (currentLocation) {
+        currentLocation.update({
+          latitude: lat,
+          longitude: lng,
+          timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+      } else {
+        currentLocation = locationsRef.push({
+          latitude: lat,
+          longitude: lng,
+          timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+      }
+    }
+  </script>
+</body>
+</html>
